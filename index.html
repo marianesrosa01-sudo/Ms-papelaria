@@ -208,8 +208,8 @@ function Card({children,style={},onClick}){
   return <div onClick={onClick} style={{background:"#fff",borderRadius:16,padding:"14px 16px",boxShadow:"0 2px 12px rgba(124,58,237,.06)",border:"1.5px solid #f0e6ff",...style}}>{children}</div>;
 }
 function Sheet({title,onClose,onSave,children,btn}){
-  return <div style={{position:"fixed",inset:0,background:"rgba(59,7,100,.75)",zIndex:600,display:"flex",alignItems:"flex-end"}} onClick={e=>e.target===e.currentTarget&&onClose()}>
-    <div style={{background:"#fff",borderRadius:"22px 22px 0 0",width:"100%",maxWidth:480,margin:"0 auto",maxHeight:"90vh",display:"flex",flexDirection:"column",animation:"slideUp .28s ease"}}>
+  return <div style={{position:"fixed",inset:0,background:"rgba(59,7,100,.75)",zIndex:600,display:"flex",alignItems:"flex-end"}} onClick={e=>e.target===e.currentTarget&&onClose()} onTouchEnd={e=>e.target===e.currentTarget&&onClose()}>
+    <div style={{background:"#fff",borderRadius:"22px 22px 0 0",width:"100%",maxWidth:480,margin:"0 auto",maxHeight:"90vh",display:"flex",flexDirection:"column",animation:"slideUp .28s ease"}} onClick={e=>e.stopPropagation()} onTouchEnd={e=>e.stopPropagation()}>
       <div style={{height:5,background:"repeating-linear-gradient(90deg,#a78bfa 0,#a78bfa 10px,#f9a8d4 10px,#f9a8d4 20px)",borderRadius:"22px 22px 0 0",flexShrink:0}}/>
       <div style={{display:"flex",justifyContent:"center",padding:"8px 0 0",flexShrink:0}}><div style={{width:36,height:4,borderRadius:4,background:"#e9d5ff"}}/></div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 20px 0",flexShrink:0}}>
@@ -411,10 +411,10 @@ function App(){
   // helpers
   const tk=(msg,err)=>{setToast({msg,err});setTimeout(()=>setToast(null),2800);};
   const openModal=(tipo,item)=>{
-    setModal(tipo);
     if(tipo==="ficha"){setForm(item&&item.id?{...item}:{nome:"",venda:"",horas:"",hvl:"25"});setMats(item&&item.mats?[...item.mats]:[]);}
     else if(tipo==="orc"){setForm(item&&item.id?{...item}:{cliente:"",tel:"",desc:"0",val:"",obs:"",status:"pendente"});setItens(item&&item.itens?[...item.itens]:[{desc:"",qtd:"1",vu:""}]);}
-    else setForm(item&&item.id?{...item}:{});
+    else{setForm(item&&item.id?{...item}:{});}
+    setModal(tipo);
   };
   const closeModal=()=>{setModal(null);setForm({});setMats([]);setItens([]);};
   const upd=(tipo,id)=>{setData(d=>({...d,[tipo]:d[tipo].filter(x=>x.id!==id)}));tk("Removido.");setDlg(null);setView(null);};
