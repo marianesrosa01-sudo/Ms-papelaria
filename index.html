@@ -152,17 +152,32 @@ function parseSession(){
 }
 function getUID(tok){try{return JSON.parse(atob(tok.split(".")[1])).sub;}catch(e){return null;}}
 async function dbLoad(tok,uid){
-  const r=await sfetch("/rest/v1/ms_dados?user_id=eq."+uid+"&select=dados&limit=1",{token:tok});
-  if(r.ok&&r.data&&r.data[0]&&r.data[0].dados){try{return JSON.parse(r.data[0].dados);}catch(e){}}
-  return null;
+  try{
+    const r=await sfetch("/rest/v1/ms_dados?user_id=eq."+uid+"&select=dados&limit=1",{token:tok});
+    console.log("[DB] load status:",r.status,"data:",r.data);
+    if(r.ok&&Array.isArray(r.data)&&r.data.length>0&&r.data[0].dados){
+      const parsed=JSON.parse(r.data[0].dados);
+      console.log("[DB] loaded keys:",Object.keys(parsed));
+      return parsed;
+    }
+    console.log("[DB] no saved data found");
+    return null;
+  }catch(e){console.error("[DB] load error:",e);return null;}
 }
 async function dbSave(tok,uid,dados){
-  const check=await sfetch("/rest/v1/ms_dados?user_id=eq."+uid+"&select=id",{token:tok});
-  const body=JSON.stringify({user_id:uid,dados:JSON.stringify(dados),updated_at:new Date().toISOString()});
-  if(check.ok&&check.data&&check.data.length>0){
-    return sfetch("/rest/v1/ms_dados?user_id=eq."+uid,{method:"PATCH",token:tok,headers:{"Prefer":"return=minimal"},body});
-  }
-  return sfetch("/rest/v1/ms_dados",{method:"POST",token:tok,headers:{"Prefer":"return=minimal"},body});
+  try{
+    const check=await sfetch("/rest/v1/ms_dados?user_id=eq."+uid+"&select=id",{token:tok});
+    const existe=check.ok&&Array.isArray(check.data)&&check.data.length>0;
+    const body=JSON.stringify({user_id:uid,dados:JSON.stringify(dados),updated_at:new Date().toISOString()});
+    let r;
+    if(existe){
+      r=await sfetch("/rest/v1/ms_dados?user_id=eq."+uid,{method:"PATCH",token:tok,headers:{"Prefer":"return=minimal"},body});
+    }else{
+      r=await sfetch("/rest/v1/ms_dados",{method:"POST",token:tok,headers:{"Prefer":"return=minimal"},body});
+    }
+    console.log("[DB] save status:",r.status,"existe:",existe);
+    return r;
+  }catch(e){console.error("[DB] save error:",e);}
 }
 
 // ── components ────────────────────────────────────────────────
@@ -349,18 +364,40 @@ function App(){
   useEffect(()=>{
     if(!sess){setReady(true);return;}
     const uid=getUID(sess.token);
-    if(!uid){setReady(true);return;}
+    if(!uid){console.warn("[AUTH] could not get UID from token");setReady(true);return;}
+    console.log("[AUTH] loading data for uid:",uid);
     dbLoad(sess.token,uid).then(saved=>{
-      if(saved) setData({pedidos:saved.pedidos||[],estoque:saved.estoque||[],gastos:saved.gastos||[],fichas:saved.fichas||[],orcs:saved.orcs||[],produtos:saved.produtos||[]});
+      if(saved){
+        console.log("[APP] applying saved data");
+        setData({
+          pedidos: saved.pedidos  !== undefined ? saved.pedidos  : INIT.pedidos,
+          estoque: saved.estoque  !== undefined ? saved.estoque  : INIT.estoque,
+          gastos:  saved.gastos   !== undefined ? saved.gastos   : INIT.gastos,
+          fichas:  saved.fichas   !== undefined ? saved.fichas   : INIT.fichas,
+          orcs:    saved.orcs     !== undefined ? saved.orcs     : INIT.orcs,
+          produtos:saved.produtos !== undefined ? saved.produtos : [],
+        });
+      }else{
+        console.log("[APP] no saved data, using defaults");
+      }
       setReady(true);
-    }).catch(()=>setReady(true));
+    }).catch(e=>{console.error("[APP] load failed:",e);setReady(true);});
   },[sess]);
   useEffect(()=>{
     if(!sess||!ready)return;
     const uid=getUID(sess.token);
     if(!uid)return;
     setSaving(true);
-    const t=setTimeout(()=>{dbSave(sess.token,uid,data).finally(()=>setSaving(false));},700);
+    const t=setTimeout(()=>{
+      console.log("[APP] saving data...");
+      dbSave(sess.token,uid,data).then(()=>{
+        console.log("[APP] save complete");
+        setSaving(false);
+      }).catch(e=>{
+        console.error("[APP] save failed:",e);
+        setSaving(false);
+      });
+    },800);
     return()=>clearTimeout(t);
   },[data,sess,ready]);
 
