@@ -331,6 +331,159 @@ function LoginScreen({onLogin}){
   </div>;
 }
 
+
+function ModalContent({modal,form,F,mats,setMats,itens,setItens,closeModal,savePed,saveEst,saveGas,saveFicha,saveOrc,saveProd,data,toBRL,calcFicha,STATUS_CFG,ORC_CFG,CATS,PROD_CATS}){
+  return <>
+
+    {modal==="ped"&&<Sheet title={form.id?"✏️ Editar Pedido":"📦 Novo Pedido"} onClose={closeModal} onSave={savePed}>
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        <Inp label="Cliente *" value={form.cliente} onChange={F("cliente")}/>
+        <Inp label="Item *" value={form.item} onChange={F("item")}/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <Inp label="Qtd" type="number" value={form.qtd} onChange={F("qtd")}/>
+          <Inp label="Valor R$ *" type="number" value={form.valor} onChange={F("valor")}/>
+        </div>
+        <Inp label="Data" type="date" value={form.data} onChange={F("data")}/>
+        <Sel label="Status" value={form.status||"aguardando"} onChange={F("status")} opts={Object.entries(STATUS_CFG).map(([k,v])=>({v:k,l:v.lb}))}/>
+      </div>
+    </Sheet>}
+
+    {modal==="est"&&<Sheet title={form.id?"✏️ Editar Item":"🗂️ Novo Item"} onClose={closeModal} onSave={saveEst}>
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        <Inp label="Nome *" value={form.nome} onChange={F("nome")}/>
+        <Inp label="Unidade (folhas, rolo...)" value={form.un} onChange={F("un")}/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <Inp label="Qtd *" type="number" value={form.qtd} onChange={F("qtd")}/>
+          <Inp label="Qtd Mínima" type="number" value={form.min} onChange={F("min")}/>
+        </div>
+        <Inp label="Custo Unitário R$" type="number" value={form.custo} onChange={F("custo")}/>
+      </div>
+    </Sheet>}
+
+    {modal==="gas"&&<Sheet title={form.id?"✏️ Editar Gasto":"💸 Novo Gasto"} onClose={closeModal} onSave={saveGas}>
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        <Inp label="Descrição *" value={form.desc} onChange={F("desc")}/>
+        <Sel label="Categoria" value={form.cat} onChange={F("cat")} opts={[{v:"",l:"Selecione..."},...CATS.map(c=>({v:c,l:c}))]}/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <Inp label="Valor Total R$ *" type="number" value={form.valor} onChange={F("valor")}/>
+          <Inp label="Qtd/Folhas" type="number" value={form.qtd} onChange={F("qtd")} ph="Ex: 100"/>
+        </div>
+        <Inp label="Data" type="date" value={form.data} onChange={F("data")}/>
+        {form.valor&&form.qtd&&+form.qtd>0&&<div style={{background:"#ede9fe",borderRadius:12,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",border:"1.5px solid #c4b5fd"}}>
+          <span style={{fontWeight:700,color:"#5b21b6",fontSize:12}}>💡 Custo por unidade</span>
+          <span style={{fontWeight:900,color:"#7c3aed",fontSize:18}}>{toBRL(+form.valor/+form.qtd)}</span>
+        </div>}
+      </div>
+    </Sheet>}
+
+    {modal==="prod"&&<Sheet title={form.id?"✏️ Editar Produto":"🏷️ Novo Produto"} onClose={closeModal} onSave={saveProd} btn="💾 Salvar Produto">
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        <Inp label="Nome do Produto *" value={form.nome} onChange={F("nome")}/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <Inp label="Preço R$ *" type="number" value={form.preco} onChange={F("preco")}/>
+          <Inp label="Unidade (unid, par...)" value={form.un||"unid"} onChange={F("un")}/>
+        </div>
+        <Sel label="Categoria" value={form.cat} onChange={F("cat")} opts={[{v:"",l:"Selecione..."},...PROD_CATS.map(c=>({v:c,l:c}))]}/>
+        <Inp label="Observação" value={form.obs} onChange={F("obs")} ph="Ex: inclui personalização"/>
+      </div>
+    </Sheet>}
+
+    {modal==="ficha"&&<Sheet title={form.id?"✏️ Editar Ficha":"🧮 Nova Ficha de Custo"} onClose={closeModal} onSave={saveFicha} btn="💾 Salvar Ficha">
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        <Inp label="Nome do Produto *" value={form.nome} onChange={F("nome")}/>
+        <Inp label="Preço de Venda R$ *" type="number" value={form.venda} onChange={F("venda")}/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <Inp label="Tempo (horas)" type="number" value={form.horas} onChange={F("horas")}/>
+          <Inp label="R$ por hora" type="number" value={form.hvl} onChange={F("hvl")}/>
+        </div>
+        {(form.venda||form.horas)&&(()=>{
+          const pp={venda:+form.venda||0,horas:+form.horas||0,hvl:+form.hvl||0,mats:mats.filter(m=>m.nome&&m.qtd&&m.cu).map(m=>({...m,qtd:+m.qtd,cu:+m.cu}))};
+          const cc=calcFicha(pp);
+          return <div style={{background:"linear-gradient(135deg,#e0f2fe,#f0f9ff)",borderRadius:14,padding:"12px",border:"1.5px solid #7dd3fc"}}>
+            <div style={{fontWeight:800,color:"#0891b2",fontSize:11,marginBottom:8}}>📊 Preview ao vivo</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+              {[{l:"Custo",v:toBRL(cc.tot),c:"#dc2626"},{l:"Lucro",v:toBRL(cc.luc),c:cc.luc>=0?"#059669":"#dc2626"},{l:"Materiais",v:toBRL(cc.mat),c:"#0891b2"},{l:"Mão de Obra",v:toBRL(cc.mao),c:"#7c3aed"}].map((x,i)=>(
+                <div key={i} style={{background:"#fff",borderRadius:10,padding:"8px"}}><div style={{fontSize:9,color:"#9ca3af",fontWeight:700}}>{x.l}</div><div style={{fontSize:13,fontWeight:900,color:x.c}}>{x.v}</div></div>
+              ))}
+            </div>
+            <div style={{marginTop:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:10,fontWeight:700,color:"#6b7280",marginBottom:2}}><span>Margem</span><span style={{color:cc.luc>=0?"#059669":"#dc2626"}}>{cc.mrg}%</span></div>
+              <div style={{background:"#e0f2fe",borderRadius:6,height:6,overflow:"hidden"}}><div style={{width:Math.max(0,Math.min(100,cc.mrg))+"%",background:cc.luc>=0?"#10b981":"#ef4444",height:"100%",borderRadius:6,transition:"width .3s"}}/></div>
+            </div>
+          </div>;
+        })()}
+        <div style={{background:"#f9fafb",borderRadius:14,padding:"12px",border:"1px solid #f0e6ff"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <span style={{fontWeight:800,color:"#374151",fontSize:13}}>📦 Materiais</span>
+            <button onClick={()=>setMats(m=>[...m,{nome:"",qtd:"",cu:""}])} style={{background:"#ede9fe",color:"#7c3aed",border:"none",borderRadius:8,padding:"5px 10px",fontWeight:700,fontFamily:"inherit",fontSize:12}}>+ Add</button>
+          </div>
+          {mats.length===0&&<div style={{textAlign:"center",color:"#c4b5fd",fontSize:12,padding:"6px 0"}}>Nenhum material</div>}
+          {mats.map((m,i)=>(
+            <div key={i} style={{background:"#fff",borderRadius:10,padding:"10px",marginBottom:6,border:"1px solid #e9d5ff"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:11,fontWeight:700,color:"#7c3aed"}}>Material {i+1}</span><button onClick={()=>setMats(ms=>ms.filter((_,j)=>j!==i))} style={{background:"#fee2e2",color:"#ef4444",border:"none",borderRadius:6,padding:"2px 7px",fontSize:11}}>✕</button></div>
+              <Inp label="Nome" value={m.nome} onChange={v=>setMats(ms=>ms.map((x,j)=>j===i?{...x,nome:v}:x))}/>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:8}}>
+                <Inp label="Qtd" type="number" value={m.qtd} onChange={v=>setMats(ms=>ms.map((x,j)=>j===i?{...x,qtd:v}:x))}/>
+                <Inp label="R$/un" type="number" value={m.cu} onChange={v=>setMats(ms=>ms.map((x,j)=>j===i?{...x,cu:v}:x))}/>
+              </div>
+              {m.qtd&&m.cu&&<div style={{marginTop:5,textAlign:"right",fontWeight:900,color:"#7c3aed",fontSize:12}}>= {toBRL(+m.qtd*(+m.cu))}</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </Sheet>}
+
+    {modal==="orc"&&<Sheet title={form.id?"✏️ Editar Orçamento":"📋 Novo Orçamento"} onClose={closeModal} onSave={saveOrc} btn="💾 Salvar Orçamento">
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        <Inp label="Cliente *" value={form.cliente} onChange={F("cliente")}/>
+        <Inp label="Telefone (WhatsApp)" value={form.tel} onChange={F("tel")} ph="(11) 99999-0000"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <Inp label="Data" type="date" value={form.data} onChange={F("data")}/>
+          <Inp label="Válido até" type="date" value={form.val} onChange={F("val")}/>
+          <Inp label="Desconto %" type="number" value={form.desc||"0"} onChange={F("desc")}/>
+          <Sel label="Status" value={form.status||"pendente"} onChange={F("status")} opts={Object.entries(ORC_CFG).map(([k,v])=>({v:k,l:v.lb}))}/>
+        </div>
+        <div style={{background:"#f9fafb",borderRadius:14,padding:"12px",border:"1px solid #e0f2fe"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <span style={{fontWeight:800,color:"#374151",fontSize:13}}>📦 Itens</span>
+            <button onClick={()=>setItens(m=>[...m,{desc:"",qtd:"1",vu:""}])} style={{background:"#e0f2fe",color:"#0e7490",border:"none",borderRadius:8,padding:"5px 10px",fontWeight:700,fontFamily:"inherit",fontSize:12}}>+ Manual</button>
+          </div>
+          {data.produtos.length>0&&<div style={{marginBottom:8}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",marginBottom:5}}>🏷️ Da tabela de preços:</div>
+            <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4}}>
+              {data.produtos.map(prod=>(
+                <button key={prod.id} onClick={()=>setItens(m=>[...m,{desc:prod.nome,qtd:"1",vu:String(prod.preco)}])} style={{flexShrink:0,background:"linear-gradient(135deg,#fdf2f8,#fce7f3)",color:"#be185d",border:"1.5px solid #fbcfe8",borderRadius:12,padding:"6px 12px",fontFamily:"inherit",textAlign:"left",minWidth:110}}>
+                  <div style={{fontWeight:800,fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:100}}>{prod.nome}</div>
+                  <div style={{fontWeight:900,color:"#9d174d",fontSize:12}}>{toBRL(prod.preco)}</div>
+                </button>
+              ))}
+            </div>
+          </div>}
+          {itens.map((it,i)=>(
+            <div key={i} style={{background:"#fff",borderRadius:10,padding:"10px",marginBottom:6,border:"1px solid #e0f2fe"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:11,fontWeight:700,color:"#0e7490"}}>Item {i+1}</span><button onClick={()=>setItens(m=>m.filter((_,j)=>j!==i))} style={{background:"#fee2e2",color:"#ef4444",border:"none",borderRadius:6,padding:"2px 7px",fontSize:11}}>✕</button></div>
+              <Inp label="Descrição" value={it.desc} onChange={v=>setItens(ms=>ms.map((x,j)=>j===i?{...x,desc:v}:x))}/>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:8}}>
+                <Inp label="Qtd" type="number" value={it.qtd} onChange={v=>setItens(ms=>ms.map((x,j)=>j===i?{...x,qtd:v}:x))}/>
+                <Inp label="R$/un" type="number" value={it.vu} onChange={v=>setItens(ms=>ms.map((x,j)=>j===i?{...x,vu:v}:x))}/>
+              </div>
+              {it.qtd&&it.vu&&<div style={{marginTop:5,textAlign:"right",fontWeight:900,color:"#0e7490",fontSize:12}}>= {toBRL(+it.qtd*(+it.vu))}</div>}
+            </div>
+          ))}
+          {itens.some(i=>i.qtd&&i.vu)&&(()=>{
+            const sub=itens.filter(i=>i.qtd&&i.vu).reduce((s,i)=>s+(+i.qtd)*(+i.vu),0);
+            const tot=sub*(1-(+form.desc||0)/100);
+            return <div style={{background:"linear-gradient(135deg,#e0f2fe,#f0f9ff)",borderRadius:12,padding:"10px 14px",border:"1.5px solid #7dd3fc",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
+              <span style={{fontWeight:800,color:"#0e7490",fontSize:12}}>💰 Total ao vivo</span>
+              <span style={{fontWeight:900,color:"#0e7490",fontSize:20}}>{toBRL(tot)}</span>
+            </div>;
+          })()}
+        </div>
+        <Inp label="Observações" value={form.obs} onChange={F("obs")} ph="Informações adicionais..."/>
+      </div>
+    </Sheet>}
+  </>
+
 // ── MAIN APP ──────────────────────────────────────────────────
 function App(){
   const [sess,setSess]=useState(parseSession);
@@ -410,15 +563,15 @@ function App(){
 
   // helpers
   const tk=(msg,err)=>{setToast({msg,err});setTimeout(()=>setToast(null),2800);};
-  const openModal=(tipo,item)=>{
+  const openModal=useCallback((tipo,item)=>{
     if(tipo==="ficha"){setForm(item&&item.id?{...item}:{nome:"",venda:"",horas:"",hvl:"25"});setMats(item&&item.mats?[...item.mats]:[]);}
     else if(tipo==="orc"){setForm(item&&item.id?{...item}:{cliente:"",tel:"",desc:"0",val:"",obs:"",status:"pendente"});setItens(item&&item.itens?[...item.itens]:[{desc:"",qtd:"1",vu:""}]);}
     else{setForm(item&&item.id?{...item}:{});}
     setModal(tipo);
-  };
-  const closeModal=()=>{setModal(null);setForm({});setMats([]);setItens([]);};
+  },[]);
+  const closeModal=useCallback(()=>{setModal(null);setForm({});setMats([]);setItens([]);},[]);
   const upd=(tipo,id)=>{setData(d=>({...d,[tipo]:d[tipo].filter(x=>x.id!==id)}));tk("Removido.");setDlg(null);setView(null);};
-  const F=k=>v=>setForm(f=>({...f,[k]:v}));
+  const F=useCallback(k=>v=>setForm(f=>({...f,[k]:v})),[]);
 
   const totRec=data.pedidos.reduce((s,p)=>s+p.valor,0);
   const totGas=data.gastos.reduce((s,g)=>s+g.valor,0);
@@ -468,9 +621,6 @@ function App(){
     tk(form.id?"Produto atualizado!":"Produto adicionado! 🎉");closeModal();
   }
 
-  const saud=hora.getHours()<12?"Bom dia":hora.getHours()<18?"Boa tarde":"Boa noite";
-  const hStr=hora.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
-  const dStr=hora.toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"short"});
 
   const TABS=[
     {k:"home",    ic:"🏠",lb:"Início"},
@@ -486,8 +636,6 @@ function App(){
   const tc=TC[aba]||"#7c3aed";
   const goTab=k=>{setAba(k);setBusca("");setFiltro("todos");setFiltCat("todos");setView(null);};
 
-  const pedFilt=data.pedidos.filter(p=>(filtro==="todos"||p.status===filtro)&&(!busca||p.cliente.toLowerCase().includes(busca.toLowerCase())||p.item.toLowerCase().includes(busca.toLowerCase())));
-  const prodFilt=data.produtos.filter(p=>(filtCat==="todos"||p.cat===filtCat)&&(!busca||p.nome.toLowerCase().includes(busca.toLowerCase())));
 
   // ── DESKTOP SIDEBAR ──
   const Sidebar=()=><aside style={{width:220,background:"linear-gradient(175deg,#6d28d9,#8b5cf6 60%,#a78bfa)",display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:100,boxShadow:"4px 0 24px rgba(109,40,217,.2)"}}>
@@ -516,7 +664,8 @@ function App(){
   </aside>;
 
   // ── CONTENT (shared between mobile/desktop) ──
-  const Content=()=><div style={{paddingBottom:mobile?80:32}}>
+function ContentView({aba,mobile,tc,data,toast,hora,filtro,setFiltro,filtCat,setFiltCat,busca,setBusca,view,setView,dlg,setDlg,goTab,openModal,upd,toBRL,calcFicha,calcOrc,exportOrc,STATUS_CFG,ORC_CFG,CATS,ativos,alerts,orcPend,estTot,totRec,totGas,lucro,VERSICULO,MASC_IMG,LOGO_IMG,TABS,TC,INIT}){
+  return <div style={{paddingBottom:mobile?80:32}}>
 
     {/* HOME */}
     {aba==="home"&&<div>
@@ -928,160 +1077,10 @@ function App(){
         </div>
       </div>;
     })()}
-  </div>;
+  </div>
+}
 
-  // ── MODALS ──
-  const Modals=()=><>
-    {dlg&&<DelDlg msg={dlg.msg} onClose={()=>setDlg(null)} onOk={()=>upd(dlg.tipo,dlg.id)}/>}
-
-    {modal==="ped"&&<Sheet title={form.id?"✏️ Editar Pedido":"📦 Novo Pedido"} onClose={closeModal} onSave={savePed}>
-      <div style={{display:"flex",flexDirection:"column",gap:12}}>
-        <Inp label="Cliente *" value={form.cliente} onChange={F("cliente")}/>
-        <Inp label="Item *" value={form.item} onChange={F("item")}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <Inp label="Qtd" type="number" value={form.qtd} onChange={F("qtd")}/>
-          <Inp label="Valor R$ *" type="number" value={form.valor} onChange={F("valor")}/>
-        </div>
-        <Inp label="Data" type="date" value={form.data} onChange={F("data")}/>
-        <Sel label="Status" value={form.status||"aguardando"} onChange={F("status")} opts={Object.entries(STATUS_CFG).map(([k,v])=>({v:k,l:v.lb}))}/>
-      </div>
-    </Sheet>}
-
-    {modal==="est"&&<Sheet title={form.id?"✏️ Editar Item":"🗂️ Novo Item"} onClose={closeModal} onSave={saveEst}>
-      <div style={{display:"flex",flexDirection:"column",gap:12}}>
-        <Inp label="Nome *" value={form.nome} onChange={F("nome")}/>
-        <Inp label="Unidade (folhas, rolo...)" value={form.un} onChange={F("un")}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <Inp label="Qtd *" type="number" value={form.qtd} onChange={F("qtd")}/>
-          <Inp label="Qtd Mínima" type="number" value={form.min} onChange={F("min")}/>
-        </div>
-        <Inp label="Custo Unitário R$" type="number" value={form.custo} onChange={F("custo")}/>
-      </div>
-    </Sheet>}
-
-    {modal==="gas"&&<Sheet title={form.id?"✏️ Editar Gasto":"💸 Novo Gasto"} onClose={closeModal} onSave={saveGas}>
-      <div style={{display:"flex",flexDirection:"column",gap:12}}>
-        <Inp label="Descrição *" value={form.desc} onChange={F("desc")}/>
-        <Sel label="Categoria" value={form.cat} onChange={F("cat")} opts={[{v:"",l:"Selecione..."},...CATS.map(c=>({v:c,l:c}))]}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <Inp label="Valor Total R$ *" type="number" value={form.valor} onChange={F("valor")}/>
-          <Inp label="Qtd/Folhas" type="number" value={form.qtd} onChange={F("qtd")} ph="Ex: 100"/>
-        </div>
-        <Inp label="Data" type="date" value={form.data} onChange={F("data")}/>
-        {form.valor&&form.qtd&&+form.qtd>0&&<div style={{background:"#ede9fe",borderRadius:12,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",border:"1.5px solid #c4b5fd"}}>
-          <span style={{fontWeight:700,color:"#5b21b6",fontSize:12}}>💡 Custo por unidade</span>
-          <span style={{fontWeight:900,color:"#7c3aed",fontSize:18}}>{toBRL(+form.valor/+form.qtd)}</span>
-        </div>}
-      </div>
-    </Sheet>}
-
-    {modal==="prod"&&<Sheet title={form.id?"✏️ Editar Produto":"🏷️ Novo Produto"} onClose={closeModal} onSave={saveProd} btn="💾 Salvar Produto">
-      <div style={{display:"flex",flexDirection:"column",gap:12}}>
-        <Inp label="Nome do Produto *" value={form.nome} onChange={F("nome")}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <Inp label="Preço R$ *" type="number" value={form.preco} onChange={F("preco")}/>
-          <Inp label="Unidade (unid, par...)" value={form.un||"unid"} onChange={F("un")}/>
-        </div>
-        <Sel label="Categoria" value={form.cat} onChange={F("cat")} opts={[{v:"",l:"Selecione..."},...PROD_CATS.map(c=>({v:c,l:c}))]}/>
-        <Inp label="Observação" value={form.obs} onChange={F("obs")} ph="Ex: inclui personalização"/>
-      </div>
-    </Sheet>}
-
-    {modal==="ficha"&&<Sheet title={form.id?"✏️ Editar Ficha":"🧮 Nova Ficha de Custo"} onClose={closeModal} onSave={saveFicha} btn="💾 Salvar Ficha">
-      <div style={{display:"flex",flexDirection:"column",gap:12}}>
-        <Inp label="Nome do Produto *" value={form.nome} onChange={F("nome")}/>
-        <Inp label="Preço de Venda R$ *" type="number" value={form.venda} onChange={F("venda")}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <Inp label="Tempo (horas)" type="number" value={form.horas} onChange={F("horas")}/>
-          <Inp label="R$ por hora" type="number" value={form.hvl} onChange={F("hvl")}/>
-        </div>
-        {(form.venda||form.horas)&&(()=>{
-          const pp={venda:+form.venda||0,horas:+form.horas||0,hvl:+form.hvl||0,mats:mats.filter(m=>m.nome&&m.qtd&&m.cu).map(m=>({...m,qtd:+m.qtd,cu:+m.cu}))};
-          const cc=calcFicha(pp);
-          return <div style={{background:"linear-gradient(135deg,#e0f2fe,#f0f9ff)",borderRadius:14,padding:"12px",border:"1.5px solid #7dd3fc"}}>
-            <div style={{fontWeight:800,color:"#0891b2",fontSize:11,marginBottom:8}}>📊 Preview ao vivo</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-              {[{l:"Custo",v:toBRL(cc.tot),c:"#dc2626"},{l:"Lucro",v:toBRL(cc.luc),c:cc.luc>=0?"#059669":"#dc2626"},{l:"Materiais",v:toBRL(cc.mat),c:"#0891b2"},{l:"Mão de Obra",v:toBRL(cc.mao),c:"#7c3aed"}].map((x,i)=>(
-                <div key={i} style={{background:"#fff",borderRadius:10,padding:"8px"}}><div style={{fontSize:9,color:"#9ca3af",fontWeight:700}}>{x.l}</div><div style={{fontSize:13,fontWeight:900,color:x.c}}>{x.v}</div></div>
-              ))}
-            </div>
-            <div style={{marginTop:8}}>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:10,fontWeight:700,color:"#6b7280",marginBottom:2}}><span>Margem</span><span style={{color:cc.luc>=0?"#059669":"#dc2626"}}>{cc.mrg}%</span></div>
-              <div style={{background:"#e0f2fe",borderRadius:6,height:6,overflow:"hidden"}}><div style={{width:Math.max(0,Math.min(100,cc.mrg))+"%",background:cc.luc>=0?"#10b981":"#ef4444",height:"100%",borderRadius:6,transition:"width .3s"}}/></div>
-            </div>
-          </div>;
-        })()}
-        <div style={{background:"#f9fafb",borderRadius:14,padding:"12px",border:"1px solid #f0e6ff"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <span style={{fontWeight:800,color:"#374151",fontSize:13}}>📦 Materiais</span>
-            <button onClick={()=>setMats(m=>[...m,{nome:"",qtd:"",cu:""}])} style={{background:"#ede9fe",color:"#7c3aed",border:"none",borderRadius:8,padding:"5px 10px",fontWeight:700,fontFamily:"inherit",fontSize:12}}>+ Add</button>
-          </div>
-          {mats.length===0&&<div style={{textAlign:"center",color:"#c4b5fd",fontSize:12,padding:"6px 0"}}>Nenhum material</div>}
-          {mats.map((m,i)=>(
-            <div key={i} style={{background:"#fff",borderRadius:10,padding:"10px",marginBottom:6,border:"1px solid #e9d5ff"}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:11,fontWeight:700,color:"#7c3aed"}}>Material {i+1}</span><button onClick={()=>setMats(ms=>ms.filter((_,j)=>j!==i))} style={{background:"#fee2e2",color:"#ef4444",border:"none",borderRadius:6,padding:"2px 7px",fontSize:11}}>✕</button></div>
-              <Inp label="Nome" value={m.nome} onChange={v=>setMats(ms=>ms.map((x,j)=>j===i?{...x,nome:v}:x))}/>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:8}}>
-                <Inp label="Qtd" type="number" value={m.qtd} onChange={v=>setMats(ms=>ms.map((x,j)=>j===i?{...x,qtd:v}:x))}/>
-                <Inp label="R$/un" type="number" value={m.cu} onChange={v=>setMats(ms=>ms.map((x,j)=>j===i?{...x,cu:v}:x))}/>
-              </div>
-              {m.qtd&&m.cu&&<div style={{marginTop:5,textAlign:"right",fontWeight:900,color:"#7c3aed",fontSize:12}}>= {toBRL(+m.qtd*(+m.cu))}</div>}
-            </div>
-          ))}
-        </div>
-      </div>
-    </Sheet>}
-
-    {modal==="orc"&&<Sheet title={form.id?"✏️ Editar Orçamento":"📋 Novo Orçamento"} onClose={closeModal} onSave={saveOrc} btn="💾 Salvar Orçamento">
-      <div style={{display:"flex",flexDirection:"column",gap:12}}>
-        <Inp label="Cliente *" value={form.cliente} onChange={F("cliente")}/>
-        <Inp label="Telefone (WhatsApp)" value={form.tel} onChange={F("tel")} ph="(11) 99999-0000"/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <Inp label="Data" type="date" value={form.data} onChange={F("data")}/>
-          <Inp label="Válido até" type="date" value={form.val} onChange={F("val")}/>
-          <Inp label="Desconto %" type="number" value={form.desc||"0"} onChange={F("desc")}/>
-          <Sel label="Status" value={form.status||"pendente"} onChange={F("status")} opts={Object.entries(ORC_CFG).map(([k,v])=>({v:k,l:v.lb}))}/>
-        </div>
-        <div style={{background:"#f9fafb",borderRadius:14,padding:"12px",border:"1px solid #e0f2fe"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <span style={{fontWeight:800,color:"#374151",fontSize:13}}>📦 Itens</span>
-            <button onClick={()=>setItens(m=>[...m,{desc:"",qtd:"1",vu:""}])} style={{background:"#e0f2fe",color:"#0e7490",border:"none",borderRadius:8,padding:"5px 10px",fontWeight:700,fontFamily:"inherit",fontSize:12}}>+ Manual</button>
-          </div>
-          {data.produtos.length>0&&<div style={{marginBottom:8}}>
-            <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",marginBottom:5}}>🏷️ Da tabela de preços:</div>
-            <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4}}>
-              {data.produtos.map(prod=>(
-                <button key={prod.id} onClick={()=>setItens(m=>[...m,{desc:prod.nome,qtd:"1",vu:String(prod.preco)}])} style={{flexShrink:0,background:"linear-gradient(135deg,#fdf2f8,#fce7f3)",color:"#be185d",border:"1.5px solid #fbcfe8",borderRadius:12,padding:"6px 12px",fontFamily:"inherit",textAlign:"left",minWidth:110}}>
-                  <div style={{fontWeight:800,fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:100}}>{prod.nome}</div>
-                  <div style={{fontWeight:900,color:"#9d174d",fontSize:12}}>{toBRL(prod.preco)}</div>
-                </button>
-              ))}
-            </div>
-          </div>}
-          {itens.map((it,i)=>(
-            <div key={i} style={{background:"#fff",borderRadius:10,padding:"10px",marginBottom:6,border:"1px solid #e0f2fe"}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:11,fontWeight:700,color:"#0e7490"}}>Item {i+1}</span><button onClick={()=>setItens(m=>m.filter((_,j)=>j!==i))} style={{background:"#fee2e2",color:"#ef4444",border:"none",borderRadius:6,padding:"2px 7px",fontSize:11}}>✕</button></div>
-              <Inp label="Descrição" value={it.desc} onChange={v=>setItens(ms=>ms.map((x,j)=>j===i?{...x,desc:v}:x))}/>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:8}}>
-                <Inp label="Qtd" type="number" value={it.qtd} onChange={v=>setItens(ms=>ms.map((x,j)=>j===i?{...x,qtd:v}:x))}/>
-                <Inp label="R$/un" type="number" value={it.vu} onChange={v=>setItens(ms=>ms.map((x,j)=>j===i?{...x,vu:v}:x))}/>
-              </div>
-              {it.qtd&&it.vu&&<div style={{marginTop:5,textAlign:"right",fontWeight:900,color:"#0e7490",fontSize:12}}>= {toBRL(+it.qtd*(+it.vu))}</div>}
-            </div>
-          ))}
-          {itens.some(i=>i.qtd&&i.vu)&&(()=>{
-            const sub=itens.filter(i=>i.qtd&&i.vu).reduce((s,i)=>s+(+i.qtd)*(+i.vu),0);
-            const tot=sub*(1-(+form.desc||0)/100);
-            return <div style={{background:"linear-gradient(135deg,#e0f2fe,#f0f9ff)",borderRadius:12,padding:"10px 14px",border:"1.5px solid #7dd3fc",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
-              <span style={{fontWeight:800,color:"#0e7490",fontSize:12}}>💰 Total ao vivo</span>
-              <span style={{fontWeight:900,color:"#0e7490",fontSize:20}}>{toBRL(tot)}</span>
-            </div>;
-          })()}
-        </div>
-        <Inp label="Observações" value={form.obs} onChange={F("obs")} ph="Informações adicionais..."/>
-      </div>
-    </Sheet>}
-  </>;
+  // ── MODALS ──;
 
   // ── RENDER ──
   if(mobile) return <div style={{maxWidth:480,margin:"0 auto",minHeight:"100vh",background:"#f5f0ff",display:"flex",flexDirection:"column"}}>
@@ -1107,8 +1106,9 @@ function App(){
     {toast&&<div style={{position:"fixed",top:80,left:"50%",transform:"translateX(-50%)",zIndex:9999,background:toast.err?"#dc2626":"linear-gradient(90deg,#7c3aed,#a78bfa)",color:"#fff",borderRadius:14,padding:"10px 20px",fontWeight:700,boxShadow:"0 4px 20px rgba(0,0,0,.2)",fontSize:13,whiteSpace:"nowrap",animation:"slideDown .3s ease"}}>
       {toast.err?"❌":"✅"} {toast.msg}
     </div>}
-    <div style={{flex:1,overflowY:"auto"}}><Content/></div>
-    <Modals/>
+    <div style={{flex:1,overflowY:"auto"}}><ContentView aba={aba} mobile={mobile} tc={tc} data={data} toast={toast} hora={hora} filtro={filtro} setFiltro={setFiltro} filtCat={filtCat} setFiltCat={setFiltCat} busca={busca} setBusca={setBusca} view={view} setView={setView} dlg={dlg} setDlg={setDlg} goTab={goTab} openModal={openModal} upd={upd} toBRL={toBRL} calcFicha={calcFicha} calcOrc={calcOrc} exportOrc={exportOrc} STATUS_CFG={STATUS_CFG} ORC_CFG={ORC_CFG} CATS={CATS} ativos={ativos} alerts={alerts} orcPend={orcPend} estTot={estTot} totRec={totRec} totGas={totGas} lucro={lucro} VERSICULO={VERSICULO} MASC_IMG={MASC_IMG} LOGO_IMG={LOGO_IMG} TABS={TABS} TC={TC} INIT={INIT}/></div>
+    {dlg&&<DelDlg msg={dlg.msg} onClose={()=>setDlg(null)} onOk={()=>upd(dlg.tipo,dlg.id)}/>}
+    {modal&&<ModalContent modal={modal} form={form} F={F} mats={mats} setMats={setMats} itens={itens} setItens={setItens} closeModal={closeModal} savePed={savePed} saveEst={saveEst} saveGas={saveGas} saveFicha={saveFicha} saveOrc={saveOrc} saveProd={saveProd} data={data} toBRL={toBRL} calcFicha={calcFicha} STATUS_CFG={STATUS_CFG} ORC_CFG={ORC_CFG} CATS={CATS} PROD_CATS={PROD_CATS}/>}
   </div>;
 
   // desktop
@@ -1118,9 +1118,10 @@ function App(){
       {toast.err?"❌":"✅"} {toast.msg}
     </div>}
     <main style={{marginLeft:220,flex:1,overflowY:"auto",minHeight:"100vh"}}>
-      <Content/>
+      <ContentView aba={aba} mobile={mobile} tc={tc} data={data} toast={toast} hora={hora} filtro={filtro} setFiltro={setFiltro} filtCat={filtCat} setFiltCat={setFiltCat} busca={busca} setBusca={setBusca} view={view} setView={setView} dlg={dlg} setDlg={setDlg} goTab={goTab} openModal={openModal} upd={upd} toBRL={toBRL} calcFicha={calcFicha} calcOrc={calcOrc} exportOrc={exportOrc} STATUS_CFG={STATUS_CFG} ORC_CFG={ORC_CFG} CATS={CATS} ativos={ativos} alerts={alerts} orcPend={orcPend} estTot={estTot} totRec={totRec} totGas={totGas} lucro={lucro} VERSICULO={VERSICULO} MASC_IMG={MASC_IMG} LOGO_IMG={LOGO_IMG} TABS={TABS} TC={TC} INIT={INIT}/>
     </main>
-    <Modals/>
+    {dlg&&<DelDlg msg={dlg.msg} onClose={()=>setDlg(null)} onOk={()=>upd(dlg.tipo,dlg.id)}/>}
+    {modal&&<ModalContent modal={modal} form={form} F={F} mats={mats} setMats={setMats} itens={itens} setItens={setItens} closeModal={closeModal} savePed={savePed} saveEst={saveEst} saveGas={saveGas} saveFicha={saveFicha} saveOrc={saveOrc} saveProd={saveProd} data={data} toBRL={toBRL} calcFicha={calcFicha} STATUS_CFG={STATUS_CFG} ORC_CFG={ORC_CFG} CATS={CATS} PROD_CATS={PROD_CATS}/>}
   </div>;
 }
 
